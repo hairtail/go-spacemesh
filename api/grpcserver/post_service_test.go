@@ -117,7 +117,7 @@ func launchPostSupervisorTLS(
 
 func Test_GenerateProof(t *testing.T) {
 	log := zaptest.NewLogger(t)
-	svc := NewPostService(log)
+	svc := NewPostService(log, t.TempDir())
 	svc.AllowConnections(true)
 	cfg, cleanup := launchServer(t, svc)
 	t.Cleanup(cleanup)
@@ -164,7 +164,7 @@ func Test_GenerateProof(t *testing.T) {
 
 func Test_GenerateProof_TLS(t *testing.T) {
 	log := zaptest.NewLogger(t)
-	svc := NewPostService(log)
+	svc := NewPostService(log, t.TempDir())
 	svc.AllowConnections(true)
 	certDir := genKeys(t)
 	cfg, cleanup := launchTLSServer(t, certDir, svc)
@@ -215,7 +215,7 @@ func Test_GenerateProof_TLS(t *testing.T) {
 
 func Test_GenerateProof_Cancel(t *testing.T) {
 	log := zaptest.NewLogger(t)
-	svc := NewPostService(log)
+	svc := NewPostService(log, t.TempDir())
 	svc.AllowConnections(true)
 	cfg, cleanup := launchServer(t, svc)
 	t.Cleanup(cleanup)
@@ -255,7 +255,7 @@ func Test_GenerateProof_Cancel(t *testing.T) {
 
 func Test_Metadata(t *testing.T) {
 	log := zaptest.NewLogger(t)
-	svc := NewPostService(log)
+	svc := NewPostService(log, t.TempDir())
 	svc.AllowConnections(true)
 	cfg, cleanup := launchServer(t, svc)
 	t.Cleanup(cleanup)
@@ -299,7 +299,7 @@ func Test_Metadata(t *testing.T) {
 
 func Test_GenerateProof_MultipleServices(t *testing.T) {
 	log := zaptest.NewLogger(t)
-	svc := NewPostService(log)
+	svc := NewPostService(log, t.TempDir())
 	svc.AllowConnections(true)
 	cfg, cleanup := launchServer(t, svc)
 	t.Cleanup(cleanup)
@@ -344,7 +344,7 @@ func Test_GenerateProof_MultipleServices(t *testing.T) {
 
 func Test_PostService_Connection_NotAllowed(t *testing.T) {
 	log := zaptest.NewLogger(t)
-	svc := NewPostService(log)
+	svc := NewPostService(log, t.TempDir())
 	svc.AllowConnections(false)
 	cfg, cleanup := launchServer(t, svc)
 	t.Cleanup(cleanup)

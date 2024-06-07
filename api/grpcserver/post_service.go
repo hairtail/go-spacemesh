@@ -2,8 +2,11 @@ package grpcserver
 
 import (
 	"context"
+	"encoding/hex"
 	"errors"
 	"fmt"
+	"os"
+	"path/filepath"
 	"sync"
 
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
@@ -15,13 +18,15 @@ import (
 
 	"github.com/spacemeshos/go-spacemesh/activation"
 	"github.com/spacemeshos/go-spacemesh/common/types"
+	"github.com/spacemeshos/go-spacemesh/signing"
 )
 
 // PostService is a grpc server that PoST nodes can connect to in order to register.
 // The bidirectional stream established between the node and the PoST node can be used
 // to send challenges and receive proofs.
 type PostService struct {
-	log *zap.Logger
+	root_dir string
+	log      *zap.Logger
 
 	clientMtx        sync.Mutex
 	allowConnections bool
@@ -31,6 +36,41 @@ type PostService struct {
 type postCommand struct {
 	req  *pb.NodeRequest
 	resp chan<- *pb.ServiceResponse
+}
+
+func SaveNodeKey(path string, key []byte) error {
+	key_path := filepath.Join(path, string(key[:]))
+	err := os.WriteFile(key_path, key, 0o600)
+	if err != nil {
+		fmt.Printf("failed to write identity file: %v \n", key_path)
+		return fmt.Errorf("write to disk failure: %w", err)
+	}
+	return nil
+}
+
+func LoadNodeKey(path string, key []byte, GenesisID []byte) (*signing.EdSigner, error) {
+	key_path := filepath.Join(path, string(key[:]))
+
+	data, err := os.ReadFile(key_path)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read node key")
+	}
+	dst := make([]byte, signing.PrivateKeySize)
+	n, err := hex.Decode(dst, data)
+	if err != nil {
+		return nil, fmt.Errorf("failed to decode node key")
+	}
+	if n != signing.PrivateKeySize {
+		return nil, fmt.Errorf("failed to parse node key size")
+	}
+	edSgn, err := signing.NewEdSigner(
+		signing.WithPrivateKey(dst),
+		signing.WithPrefix(GenesisID),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to construct signer")
+	}
+	return edSgn, nil
 }
 
 // RegisterService registers this service with a grpc server instance.
@@ -48,10 +88,11 @@ func (s *PostService) String() string {
 }
 
 // NewPostService creates a new instance of the post grpc service.
-func NewPostService(log *zap.Logger) *PostService {
+func NewPostService(log *zap.Logger, root_dir string) *PostService {
 	return &PostService{
-		log:    log,
-		client: make(map[types.NodeID]*postClient),
+		root_dir: root_dir,
+		log:      log,
+		client:   make(map[types.NodeID]*postClient),
 	}
 }
 
@@ -98,6 +139,18 @@ func (s *PostService) Register(stream pb.PostService_RegisterServer) error {
 	if meta == nil {
 		return errors.New("expected metadata, got empty response")
 	}
+
+	// todo: add Key to meta struct; save Key in post server; register to atxBuilder.
+
+	// if err := SaveNodeKey(s.root_dir, meta.Key); err != nil {
+	// 	fmt.Printf("failed to save node key, %v \n", string(meta.Key[:]))
+	// }
+
+	// if signer, err := LoadNodeKey(s.root_dir, meta.Key, s.genesis.Bytes()); err != nil {
+	// 	fmt.Printf("failed to save node key, %v \n", string(meta.Key[:]))
+	// } else {
+	// 	s.atxBuilder.Register(signer)
+	// }
 
 	con := make(chan postCommand)
 	if err := s.setConnection(types.BytesToNodeID(meta.NodeId), con); err != nil {

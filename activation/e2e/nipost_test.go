@@ -171,7 +171,7 @@ func TestNIPostBuilderWithClients(t *testing.T) {
 
 	poetDb := activation.NewPoetDb(db, log.NewFromLog(logger).Named("poetDb"))
 
-	svc := grpcserver.NewPostService(logger)
+	svc := grpcserver.NewPostService(logger, t.TempDir())
 	svc.AllowConnections(true)
 	grpcCfg, cleanup := launchServer(t, svc)
 	t.Cleanup(cleanup)
@@ -231,7 +231,7 @@ func TestNIPostBuilder_Close(t *testing.T) {
 		},
 	)
 
-	svc := grpcserver.NewPostService(logger)
+	svc := grpcserver.NewPostService(logger, t.TempDir())
 	svc.AllowConnections(true)
 
 	db := localsql.InMemory()
@@ -304,7 +304,7 @@ func TestNewNIPostBuilderNotInitialized(t *testing.T) {
 
 	poetDb := activation.NewPoetDb(db, log.NewFromLog(logger).Named("poetDb"))
 
-	svc := grpcserver.NewPostService(logger)
+	svc := grpcserver.NewPostService(logger, t.TempDir())
 	svc.AllowConnections(true)
 	grpcCfg, cleanup := launchServer(t, svc)
 	t.Cleanup(cleanup)
@@ -376,7 +376,7 @@ func Test_NIPostBuilderWithMultipleClients(t *testing.T) {
 		return synced
 	})
 
-	svc := grpcserver.NewPostService(logger)
+	svc := grpcserver.NewPostService(logger, t.TempDir())
 	svc.AllowConnections(true)
 	grpcCfg, cleanup := launchServer(t, svc)
 	t.Cleanup(cleanup)
